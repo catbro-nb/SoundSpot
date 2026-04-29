@@ -1,5 +1,5 @@
 import client from './client';
-import { Song } from './songs';
+import type { Song } from './types';
 
 export interface RecognizeResult { song: Song | null; confidence: number | null; match_type: string | null; offset_ms: number | null; }
 export interface RecognizeResponse { task_id: string; status: string; result: RecognizeResult | null; message?: string; }

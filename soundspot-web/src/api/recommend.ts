@@ -1,5 +1,5 @@
 import client from './client';
-import { Song } from './songs';
+import type { Song } from './types';
 
 export interface RecommendItem { song: Song; reason: string | null; reason_type: string | null; confidence: number | null; }
 export interface RecommendResponse { total: number; items: RecommendItem[]; refreshed_at: string | null; }
