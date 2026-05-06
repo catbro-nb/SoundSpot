@@ -1,8 +1,10 @@
 """SoundSpot FastAPI 主入口"""
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.database import engine, Base
@@ -18,6 +20,9 @@ async def lifespan(app: FastAPI):
     # 填充种子数据
     from app.seed import seed_data
     seed_data()
+    # 构建音频指纹库
+    from app.fingerprint import build_fingerprint_db
+    build_fingerprint_db()
     yield
 
 
@@ -35,6 +40,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 静态文件 - 音频
+AUDIO_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "audio")
+os.makedirs(AUDIO_DIR, exist_ok=True)
+app.mount("/static/audio", StaticFiles(directory=AUDIO_DIR), name="audio")
 
 # 注册路由
 app.include_router(auth.router)

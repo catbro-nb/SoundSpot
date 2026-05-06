@@ -12,3 +12,10 @@ dist/
 # IDE
 .vscode/
 .idea/
+
+# Sensitive files
+token*.txt
+*.token
+
+# Music source files (already converted to static/audio/)
+music/

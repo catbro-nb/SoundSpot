@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { Home, Mic, Compass, Library, Search, LogOut, Music } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
+import PlayerBar from './PlayerBar';
+import { usePlayerStore } from '../stores/playerStore';
 
 const navItems = [
   { to: '/', icon: Home, label: '首页' },
@@ -14,6 +16,7 @@ const navItems = [
 export default function Layout() {
   const [expanded, setExpanded] = useState(false);
   const { user, logout, fetchMe } = useAuthStore();
+  const currentSong = usePlayerStore(s => s.currentSong);
   const navigate = useNavigate();
 
   useEffect(() => { fetchMe(); }, [fetchMe]);
@@ -69,9 +72,12 @@ export default function Layout() {
       </aside>
 
       {/* 主内容 */}
-      <main className="flex-1 overflow-y-auto" style={{ background: '#0f0f1a' }}>
+      <main className="flex-1 overflow-y-auto" style={{ background: '#0f0f1a', paddingBottom: currentSong ? '72px' : '0' }}>
         <Outlet />
       </main>
+
+      {/* 底部播放器 */}
+      <PlayerBar />
     </div>
   );
 }

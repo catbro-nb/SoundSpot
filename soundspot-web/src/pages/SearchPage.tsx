@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search as SearchIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search as SearchIcon, Play, Pause } from 'lucide-react';
 import { searchSongs } from '../api/songs';
 import type { Song } from '../api/types';
-import { useNavigate } from 'react-router-dom';
+import { usePlayerStore } from '../stores/playerStore';
 
 export default function SearchPage() {
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Song[]>([]);
   const [loading, setLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
-  const navigate = useNavigate();
+  const { currentSong, isPlaying, toggle, setQueue } = usePlayerStore();
 
   useEffect(() => {
     if (!query.trim()) { setResults([]); return; }
@@ -23,6 +25,11 @@ export default function SearchPage() {
   }, [query]);
 
   const formatDuration = (s: number | null) => s ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : '--:--';
+
+  const handlePlaySong = (song: Song) => {
+    const idx = results.findIndex(s => s.id === song.id);
+    setQueue(results, idx >= 0 ? idx : 0);
+  };
 
   return (
     <div className="max-w-4xl mx-auto p-8">
@@ -43,16 +50,33 @@ export default function SearchPage() {
       {!loading && results.length === 0 && query && <p className="text-slate-500 text-sm text-center">未找到结果</p>}
 
       <div className="space-y-2">
-        {results.map(song => (
-          <div key={song.id} onClick={() => navigate(`/song/${song.id}`)} className="flex items-center gap-4 p-3 rounded-lg cursor-pointer hover:bg-white/5 transition-colors" style={{ background: '#1a1a2e' }}>
-            <img src={song.cover_url || `https://picsum.photos/seed/s${song.id}/60/60`} alt="" className="w-12 h-12 rounded-lg object-cover" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{song.title}</p>
-              <p className="text-xs text-slate-500 truncate">{song.artist?.name || '未知'} · {song.album?.title || ''}</p>
+        {results.map(song => {
+          const isCurrent = currentSong?.id === song.id;
+          const isActive = isCurrent && isPlaying;
+          return (
+            <div
+              key={song.id}
+              className="flex items-center gap-4 p-3 rounded-lg cursor-pointer hover:bg-white/5 transition-colors group"
+              style={{ background: '#1a1a2e' }}
+              onClick={() => navigate(`/song/${song.id}`)}
+            >
+              <div className="relative shrink-0">
+                <img src={song.cover_url || `https://picsum.photos/seed/s${song.id}/60/60`} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                <div
+                  className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg"
+                  onClick={(e) => { e.stopPropagation(); handlePlaySong(song); }}
+                >
+                  {isActive ? <Pause size={16} className="text-white" /> : <Play size={16} className="text-white ml-0.5" />}
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-medium truncate ${isCurrent ? 'text-indigo-400' : ''}`}>{song.title}</p>
+                <p className="text-xs text-slate-500 truncate">{song.artist?.name || '未知'} · {song.album?.title || ''}</p>
+              </div>
+              <span className="text-xs text-slate-600">{formatDuration(song.duration)}</span>
             </div>
-            <span className="text-xs text-slate-600">{formatDuration(song.duration)}</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

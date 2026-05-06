@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Heart, ListMusic, Clock, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Heart, ListMusic, Clock, Plus, Play, Pause } from 'lucide-react';
 import { getPlaylists, createPlaylist } from '../api/playlists';
 import { getHistory } from '../api/recognize';
-import type { Playlist, RecognizeRecord } from '../api/types';
+import type { Playlist, RecognizeRecord, Song } from '../api/types';
+import { usePlayerStore } from '../stores/playerStore';
 
 const tabs = [
   { key: 'favorites', label: '收藏', icon: Heart },
@@ -11,11 +13,13 @@ const tabs = [
 ];
 
 export default function LibraryPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('favorites');
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [history, setHistory] = useState<RecognizeRecord[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
+  const { currentSong, isPlaying, toggle, setQueue } = usePlayerStore();
 
   useEffect(() => {
     getPlaylists().then(r => setPlaylists(r)).catch(() => {});
@@ -26,6 +30,8 @@ export default function LibraryPage() {
     if (!newName.trim()) return;
     try { await createPlaylist({ name: newName }); const r = await getPlaylists(); setPlaylists(r); setShowCreate(false); setNewName(''); } catch {}
   };
+
+  const historySongs = history.map(r => r.song).filter((s): s is Song => s !== null);
 
   return (
     <div className="max-w-4xl mx-auto p-8">
@@ -82,15 +88,29 @@ export default function LibraryPage() {
       {/* 播放历史 */}
       {activeTab === 'history' && (
         <div className="space-y-2">
-          {history.map(r => (
-            <div key={r.id} className="flex items-center gap-3 p-3 rounded-lg" style={{ background: '#1a1a2e' }}>
-              <img src={r.song?.cover_url || `https://picsum.photos/seed/lib${r.id}/48/48`} alt="" className="w-10 h-10 rounded-lg object-cover" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{r.song?.title || '未识别'}</p>
-                <p className="text-xs text-slate-500">{r.song?.artist?.name || '--'}</p>
+          {history.map(r => {
+            const isCurrent = r.song && currentSong?.id === r.song.id;
+            const isActive = isCurrent && isPlaying;
+            return (
+              <div
+                key={r.id}
+                className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-white/5 transition-colors group"
+                style={{ background: '#1a1a2e' }}
+                onClick={() => r.song && navigate(`/song/${r.song.id}`)}
+              >
+                <div className="relative shrink-0">
+                  <img src={r.song?.cover_url || `https://picsum.photos/seed/lib${r.id}/48/48`} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                    {isActive ? <Pause size={14} className="text-white" /> : <Play size={14} className="text-white ml-0.5" />}
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-medium truncate ${isCurrent ? 'text-indigo-400' : ''}`}>{r.song?.title || '未识别'}</p>
+                  <p className="text-xs text-slate-500">{r.song?.artist?.name || '--'}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {history.length === 0 && <p className="text-slate-500 text-sm">暂无记录</p>}
         </div>
       )}
